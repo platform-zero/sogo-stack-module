@@ -1,0 +1,47 @@
+{
+  SOGoPageTitle = "webservices Mail";
+  SOGoUIxDebugEnabled = NO;
+  SOGoAuthenticationType = openid;
+  SOGoLoginModule = Calendar;
+  SOGoTimeZone = "${SOGO_TIMEZONE}";
+  SOGoLanguage = "${SOGO_LANGUAGE}";
+  SOGoMemcachedHost = "${SOGO_MEMCACHED_HOST}";
+  SOGoTrustProxyAuthentication = NO;
+  SOGoXSRFValidationEnabled = ${SOGO_XSRF_VALIDATION_ENABLED};
+  OCSOpenIdURL = "mysql://${SOGO_DB_USER}:${SOGO_DB_PASSWORD}@${SOGO_DB_HOST}:${SOGO_DB_PORT}/${SOGO_DB_NAME}/sogo_openid";
+  SOGoOpenIdConfigUrl = "${SOGO_OPENID_CONFIG_URL}";
+  SOGoOpenIdClient = "${SOGO_OPENID_CLIENT}";
+  SOGoOpenIdClientSecret = "${SOGO_OAUTH_SECRET}";
+  SOGoOpenIdScope = "${SOGO_OPENID_SCOPE}";
+  SOGoOpenIdEmailParam = "${SOGO_OPENID_EMAIL_PARAM}";
+  SOGoOpenIdEnableRefreshToken = NO;
+  SOGoOpenIdTokenCheckInterval = 0;
+  SOGoUserSources = (
+    {
+      type = sql;
+      id = keycloak;
+      displayName = "Keycloak Users";
+      viewURL = "mysql://${SOGO_DB_USER}:${SOGO_DB_PASSWORD}@${SOGO_DB_HOST}:${SOGO_DB_PORT}/${SOGO_DB_NAME}/sogo_users";
+      canAuthenticate = YES;
+      isAddressBook = YES;
+      LoginFieldNames = (c_uid, mail);
+      MailFieldNames = (mail);
+      IMAPLoginFieldName = mail;
+    }
+  );
+  SOGoProfileURL = "mysql://${SOGO_DB_USER}:${SOGO_DB_PASSWORD}@${SOGO_DB_HOST}:${SOGO_DB_PORT}/${SOGO_DB_NAME}/sogo_user_profile";
+  OCSFolderInfoURL = "mysql://${SOGO_DB_USER}:${SOGO_DB_PASSWORD}@${SOGO_DB_HOST}:${SOGO_DB_PORT}/${SOGO_DB_NAME}/sogo_folder_info";
+  OCSSessionsFolderURL = "mysql://${SOGO_DB_USER}:${SOGO_DB_PASSWORD}@${SOGO_DB_HOST}:${SOGO_DB_PORT}/${SOGO_DB_NAME}/sogo_sessions_folder";
+  SOGoMailDomain = "${SOGO_MAIL_DOMAIN}";
+  SOGoForceIMAPLoginWithEmail = YES;
+  SOGoIMAPServer = "${SOGO_IMAP_SERVER}";
+  SOGoSieveServer = "${SOGO_SIEVE_SERVER}";
+  SOGoSMTPServer = "${SOGO_SMTP_SERVER}";
+  SOGoMailingMechanism = smtp;
+  NGImap4AuthMechanism = ${SOGO_IMAP_AUTH_MECHANISM};
+  SOGoSMTPAuthenticationType = ${SOGO_SMTP_AUTHENTICATION_TYPE};
+  NGImap4ConnectionStringSeparator = "/";
+  SOGoMailSpoolPath = "/var/spool/sogo";
+  SOGoMaximumPingInterval = 3540;
+  SOGoMaximumSyncInterval = 3540;
+}

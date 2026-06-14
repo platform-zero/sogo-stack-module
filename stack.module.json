@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "sogo",
+  "repo": "sogo-stack-module",
+  "runtimeId": "sogo",
+  "lifecycle": "active",
+  "dependencies": [
+    "stack-foundation"
+  ],
+  "overlays": [
+    "stack.compose/sogo.yml",
+    "stack.config/sogo"
+  ]
+}
