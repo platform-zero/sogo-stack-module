@@ -7,8 +7,17 @@
   "dependencies": [
     "stack-foundation"
   ],
+  "runtimeDependencies": [
+    "stack-foundation"
+  ],
+  "contracts": [
+    "module-contract"
+  ],
+  "smoke": "external-only",
+  "smokeUnsupportedReason": "requires generated bundle context, deployed networking, secrets, or service dependencies",
   "overlays": [
     "stack.compose/sogo.yml",
     "stack.config/sogo"
-  ]
+  ],
+  "testAssets": []
 }
