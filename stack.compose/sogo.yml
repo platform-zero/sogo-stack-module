@@ -54,3 +54,8 @@ services:
 
 volumes:
   sogo_spool:
+    driver: local
+    driver_opts:
+      type: bind
+      o: bind
+      device: ${STACK_VOLUME_ROOT}/sogo_spool
