@@ -1,0 +1,58 @@
+---
+schemaVersion: 1
+module: "sogo"
+target: "apps"
+services:
+  sogo:
+    image: "sonroyaalmerol/docker-sogo:5.12.7"
+    containerName: "sogo"
+    lifecycle: "daemon"
+    updatePolicy: "registry"
+    placement: "rootful"
+    dependencies:
+      caddy: "healthy"
+      keycloak: "healthy"
+      keycloak-configure: "completed"
+      mariadb: "healthy"
+      mailserver: "healthy"
+      memcached: "healthy"
+    environment:
+      TZ: "UTC"
+      DOMAIN: "${DOMAIN}"
+      MAIL_DOMAIN: "${MAIL_DOMAIN}"
+      PUID: "${DOCKER_USER_ID:-1000}"
+      PGID: "${DOCKER_GROUP_ID:-1000}"
+      MARIADB_ADMIN_PASSWORD: "${MARIADB_ADMIN_PASSWORD}"
+      SOGO_DB_HOST: "mariadb"
+      SOGO_DB_PORT: 3306
+      SOGO_DB_NAME: "sogo"
+      SOGO_DB_USER: "sogo"
+      SOGO_DB_PASSWORD: "${SOGO_DB_PASSWORD}"
+      SOGO_MEMCACHED_HOST: "memcached"
+      SOGO_OAUTH_SECRET: "${SOGO_OAUTH_SECRET}"
+    networks:
+      caddy: null
+      mariadb: null
+      mailserver: null
+      memcached: null
+    volumes:
+    - "sogo_spool:/var/spool/sogo"
+    - "caddy_ca:/ca:ro"
+    - "./configs/sogo/entrypoint.sh:/entrypoint-wrapper.sh:ro"
+    - "./configs/sogo/sogo.conf:/config-templates/sogo.conf.template:ro"
+    health:
+      test:
+      - "CMD-SHELL"
+      - "curl -fsS http://127.0.0.1/SOGo/ >/dev/null"
+      interval: "30s"
+      timeout: "10s"
+      retries: 10
+      start_period: "300s"
+    entrypoint:
+    - "/bin/bash"
+    - "/entrypoint-wrapper.sh"
+    restart: "unless-stopped"
+networks: {}
+volumes:
+  sogo_spool:
+    hostPath: "${STACK_VOLUME_ROOT}/sogo_spool"
