@@ -6,7 +6,7 @@
 - Lifecycle: `active`
 
 ## Owned overlays
-- `stack.compose/sogo.yml`
+- `stack.runtime.yaml`
 - `stack.config/sogo`
 
 ## Dependencies
