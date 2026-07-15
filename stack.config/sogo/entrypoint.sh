@@ -17,6 +17,15 @@ export SOGO_DB_HOST="${SOGO_DB_HOST:-mariadb}"
 export SOGO_DB_PORT="${SOGO_DB_PORT:-3306}"
 export SOGO_DB_NAME="${SOGO_DB_NAME:-sogo}"
 export SOGO_DB_USER="${SOGO_DB_USER:-sogo}"
+case "$SOGO_DB_NAME" in (*[!A-Za-z0-9_]*|"") echo "invalid SOGO_DB_NAME" >&2; exit 1 ;; esac
+case "$SOGO_DB_USER" in (*[!A-Za-z0-9_]*|"") echo "invalid SOGO_DB_USER" >&2; exit 1 ;; esac
+sql_literal() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//\'/\'\'}"
+  printf "'%s'" "$value"
+}
+sogo_password_literal="$(sql_literal "$SOGO_DB_PASSWORD")"
 export SOGO_TIMEZONE="${SOGO_TIMEZONE:-UTC}"
 export SOGO_LANGUAGE="${SOGO_LANGUAGE:-English}"
 export SOGO_MEMCACHED_HOST="${SOGO_MEMCACHED_HOST:-memcached}"
@@ -38,12 +47,12 @@ until mariadb -h "$SOGO_DB_HOST" -P "$SOGO_DB_PORT" -u root -p"$MARIADB_ADMIN_PA
   sleep 2
 done
 
-mariadb -h "$SOGO_DB_HOST" -P "$SOGO_DB_PORT" -u root -p"$MARIADB_ADMIN_PASSWORD" --protocol=TCP --ssl=0 <<-EOSQL
+mariadb -h "$SOGO_DB_HOST" -P "$SOGO_DB_PORT" -u root -p"$MARIADB_ADMIN_PASSWORD" --protocol=TCP --ssl=0 <<EOSQL
   CREATE DATABASE IF NOT EXISTS \`$SOGO_DB_NAME\`
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;
-  CREATE USER IF NOT EXISTS '$SOGO_DB_USER'@'%' IDENTIFIED BY '$SOGO_DB_PASSWORD';
-  ALTER USER '$SOGO_DB_USER'@'%' IDENTIFIED BY '$SOGO_DB_PASSWORD';
+  CREATE USER IF NOT EXISTS '$SOGO_DB_USER'@'%' IDENTIFIED BY $sogo_password_literal;
+  ALTER USER '$SOGO_DB_USER'@'%' IDENTIFIED BY $sogo_password_literal;
   GRANT ALL PRIVILEGES ON \`$SOGO_DB_NAME\`.* TO '$SOGO_DB_USER'@'%';
   FLUSH PRIVILEGES;
 EOSQL
