@@ -172,6 +172,19 @@ mariadb -h "$SOGO_DB_HOST" -P "$SOGO_DB_PORT" -u root -p"$MARIADB_ADMIN_PASSWORD
   DELIMITER ;
 EOSQL
 
+# The native DAV client needs an app credential; browser users keep OIDC.
+if [ -n "${SOGO_NATIVE_TEST_EMAIL:-}" ] && [ -n "${SOGO_NATIVE_TEST_PASSWORD:-}" ]; then
+  native_hash="$(printf '%s\n' "$SOGO_NATIVE_TEST_PASSWORD" | openssl passwd -6 -stdin)"
+  native_email_literal="$(sql_literal "$SOGO_NATIVE_TEST_EMAIL")"
+  native_hash_literal="$(sql_literal "{SHA512-CRYPT}${native_hash}")"
+  mariadb -h "$SOGO_DB_HOST" -P "$SOGO_DB_PORT" -u "$SOGO_DB_USER" -p"$SOGO_DB_PASSWORD" \
+    --protocol=TCP --ssl=0 "$SOGO_DB_NAME" <<EOSQL
+    INSERT INTO sogo_users (c_uid, c_name, c_password, c_cn, mail)
+    VALUES ($native_email_literal, $native_email_literal, $native_hash_literal, 'Android DAV test', $native_email_literal)
+    ON DUPLICATE KEY UPDATE c_password = VALUES(c_password);
+EOSQL
+fi
+
 install -d -m 0750 -o sogo -g sogo /var/spool/sogo
 
 envsubst < /config-templates/sogo.conf.template > /etc/sogo/sogo.conf

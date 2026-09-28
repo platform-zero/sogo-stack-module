@@ -30,6 +30,8 @@ services:
       SOGO_DB_PASSWORD: "${SOGO_DB_PASSWORD}"
       SOGO_MEMCACHED_HOST: "memcached"
       SOGO_OAUTH_SECRET: "${SOGO_OAUTH_SECRET}"
+      SOGO_NATIVE_TEST_EMAIL: "android-test@${MAIL_DOMAIN}"
+      SOGO_NATIVE_TEST_PASSWORD: "${MODEL_CONTEXT_PROXY_AUTH_SECRET}"
     networks:
       caddy: null
       mariadb: null
