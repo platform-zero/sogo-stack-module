@@ -32,6 +32,8 @@ services:
       SOGO_OAUTH_SECRET: "${SOGO_OAUTH_SECRET}"
       SOGO_NATIVE_TEST_EMAIL: "android-test@${MAIL_DOMAIN}"
       SOGO_NATIVE_TEST_PASSWORD: "${MODEL_CONTEXT_PROXY_AUTH_SECRET}"
+    extraHosts:
+    - "keycloak.${DOMAIN}:host-gateway"
     networks:
       caddy: null
       mariadb: null
@@ -39,13 +41,13 @@ services:
       memcached: null
     volumes:
     - "sogo_spool:/var/spool/sogo"
-    - "caddy_ca:/ca:ro"
+    - "${STACK_VOLUME_ROOT}/caddy_ca:/ca:ro"
     - "./configs/sogo/entrypoint.sh:/entrypoint-wrapper.sh:ro"
     - "./configs/sogo/sogo.conf:/config-templates/sogo.conf.template:ro"
     health:
       test:
       - "CMD-SHELL"
-      - "curl -fsS http://127.0.0.1/SOGo/ >/dev/null"
+      - "curl -fsS --cacert /ca/caddy-ca.crt https://keycloak.${DOMAIN}/realms/webservices/.well-known/openid-configuration >/dev/null && curl -fsS http://127.0.0.1/SOGo/ >/dev/null"
       interval: "30s"
       timeout: "10s"
       retries: 10

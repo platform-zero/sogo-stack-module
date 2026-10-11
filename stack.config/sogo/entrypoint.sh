@@ -43,11 +43,34 @@ export SOGO_OPENID_SCOPE="${SOGO_OPENID_SCOPE:-openid profile email}"
 export SOGO_OPENID_EMAIL_PARAM="${SOGO_OPENID_EMAIL_PARAM:-email}"
 export SOGO_OPENID_TOKEN_CHECK_INTERVAL="${SOGO_OPENID_TOKEN_CHECK_INTERVAL:-300}"
 
-until mariadb -h "$SOGO_DB_HOST" -P "$SOGO_DB_PORT" -u root -p"$MARIADB_ADMIN_PASSWORD" --protocol=TCP --ssl=0 -e "SELECT 1" >/dev/null 2>&1; do
+db_admin() {
+  # Native client private environment; never put passwords or SQL errors in argv/logs.
+  MYSQL_PWD="$MARIADB_ADMIN_PASSWORD" mariadb -h "$SOGO_DB_HOST" -P "$SOGO_DB_PORT" -u root \
+    --protocol=TCP --ssl=0 "$@" 2>/dev/null || {
+      echo '[sogo-bootstrap] database operation refused' >&2
+      return 1
+    }
+}
+db_user() {
+  MYSQL_PWD="$SOGO_DB_PASSWORD" mariadb -h "$SOGO_DB_HOST" -P "$SOGO_DB_PORT" -u "$SOGO_DB_USER" \
+    --protocol=TCP --ssl=0 "$@" 2>/dev/null || {
+      echo '[sogo-bootstrap] private user database operation refused' >&2
+      return 1
+    }
+}
+
+until db_admin -e "SELECT 1" >/dev/null 2>&1; do
   sleep 2
 done
 
-mariadb -h "$SOGO_DB_HOST" -P "$SOGO_DB_PORT" -u root -p"$MARIADB_ADMIN_PASSWORD" --protocol=TCP --ssl=0 <<EOSQL
+# Classify before any mutation; preserve both tables and legacy views.
+directory_type="$(db_admin -N -B -e "SELECT TABLE_TYPE FROM information_schema.TABLES WHERE TABLE_SCHEMA='$SOGO_DB_NAME' AND TABLE_NAME='sogo_users' LIMIT 1")"
+if [ "$directory_type" = VIEW ]; then
+  echo '[sogo-bootstrap] preserving existing directory view; declared conversion required' >&2
+  exit 1
+fi
+
+db_admin <<EOSQL
   CREATE DATABASE IF NOT EXISTS \`$SOGO_DB_NAME\`
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;
@@ -57,7 +80,7 @@ mariadb -h "$SOGO_DB_HOST" -P "$SOGO_DB_PORT" -u root -p"$MARIADB_ADMIN_PASSWORD
   FLUSH PRIVILEGES;
 EOSQL
 
-mariadb -h "$SOGO_DB_HOST" -P "$SOGO_DB_PORT" -u root -p"$MARIADB_ADMIN_PASSWORD" --protocol=TCP --ssl=0 "$SOGO_DB_NAME" <<-'EOSQL'
+db_admin "$SOGO_DB_NAME" <<-'EOSQL'
   CREATE TABLE IF NOT EXISTS sogo_openid (
     c_user_session text NOT NULL,
     c_old_session text DEFAULT '',
@@ -71,22 +94,6 @@ mariadb -h "$SOGO_DB_HOST" -P "$SOGO_DB_PORT" -u root -p"$MARIADB_ADMIN_PASSWORD
      SET c_old_session = COALESCE(c_old_session, ''),
          c_refresh_token = COALESCE(c_refresh_token, ''),
          c_access_token_expires_in = COALESCE(c_access_token_expires_in, 0);
-
-  SET @sogo_users_type = (
-    SELECT TABLE_TYPE
-    FROM information_schema.TABLES
-    WHERE TABLE_SCHEMA = DATABASE()
-      AND TABLE_NAME = 'sogo_users'
-    LIMIT 1
-  );
-  SET @drop_sogo_users_sql = CASE
-    WHEN @sogo_users_type = 'VIEW' THEN 'DROP VIEW sogo_users'
-    WHEN @sogo_users_type = 'BASE TABLE' THEN 'DROP TABLE sogo_users'
-    ELSE 'SELECT 1'
-  END;
-  PREPARE drop_sogo_users_stmt FROM @drop_sogo_users_sql;
-  EXECUTE drop_sogo_users_stmt;
-  DEALLOCATE PREPARE drop_sogo_users_stmt;
 
   CREATE TABLE IF NOT EXISTS sogo_users (
     c_uid varchar(255) NOT NULL,
@@ -177,8 +184,7 @@ if [ -n "${SOGO_NATIVE_TEST_EMAIL:-}" ] && [ -n "${SOGO_NATIVE_TEST_PASSWORD:-}"
   native_hash="$(printf '%s\n' "$SOGO_NATIVE_TEST_PASSWORD" | openssl passwd -6 -stdin)"
   native_email_literal="$(sql_literal "$SOGO_NATIVE_TEST_EMAIL")"
   native_hash_literal="$(sql_literal "{SHA512-CRYPT}${native_hash}")"
-  mariadb -h "$SOGO_DB_HOST" -P "$SOGO_DB_PORT" -u "$SOGO_DB_USER" -p"$SOGO_DB_PASSWORD" \
-    --protocol=TCP --ssl=0 "$SOGO_DB_NAME" <<EOSQL
+  db_user "$SOGO_DB_NAME" <<EOSQL
     INSERT INTO sogo_users (c_uid, c_name, c_password, c_cn, mail)
     VALUES ($native_email_literal, $native_email_literal, $native_hash_literal, 'Android DAV test', $native_email_literal)
     ON DUPLICATE KEY UPDATE c_password = VALUES(c_password);
