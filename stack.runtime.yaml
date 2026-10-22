@@ -4,7 +4,7 @@ module: "sogo"
 target: "apps"
 services:
   sogo:
-    image: "sonroyaalmerol/docker-sogo:5.12.7"
+    image: "sonroyaalmerol/docker-sogo:5.12.7@sha256:09dc69d5b9176864ea02efeef8178969aa549d108e05b39c58188b61809da616"
     containerName: "sogo"
     lifecycle: "daemon"
     updatePolicy: "registry"
